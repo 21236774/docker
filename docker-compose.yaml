@@ -1,0 +1,46 @@
+version: "3.8"
+
+### 设置docker容器名称，不然按照目录来
+name: blog_project
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: ai123456
+      POSTGRES_DB: fastapi_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - blog_postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: ./api
+    ports:
+      - "26001:8000"
+    environment:
+      - DATABASE_URL=postgresql://root:ai123456@postgres:5432/fastapi_db
+    depends_on:
+      - postgres
+    volumes:
+      - ./api:/app/api # 挂载代码目录以便文件变化能够被监控
+
+  web:
+    build: ./web
+    container_name: blog_web
+    ports:
+      - "26000:26000"
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:26001
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - api
+
+volumes:
+  blog_postgres_data:
+    name: blog_postgres_data
